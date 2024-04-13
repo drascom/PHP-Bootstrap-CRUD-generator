@@ -1,0 +1,4 @@
+SetEnv MYSQL_USER root
+SetEnv MYSQL_PASSWD root
+SetEnv MYSQL_SERVER http://localhost
+SetEnv DATABASE_NAME test
