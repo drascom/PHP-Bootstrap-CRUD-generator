@@ -1,43 +1,87 @@
 <?php
+if (empty(getenv('DATABASE_NAME'))) {
+    echo 'Database not configured.';
+} else {
+    $config_database = getenv('DATABASE_NAME');
+    include '../db_config.php';
+}
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Check if the 'table' field is present in the POST data
+    if (!isset($_POST['table'])) {
+        // If the 'table' field is missing, return an error response
+        http_response_code(400);
+        echo json_encode(['error' => 'Missing required fields']);
+        exit;
+    }
 
-// Check if form data and table name are provided
-if (isset($_POST['table'])) {
-    $table_name = $_POST['table'];
-    $selected_database = $_POST['db'];
-
-    // Check if ID is provided for update operation
-    if (isset($_POST['id'])) {
-        $record_id = $_POST['id'];
-        // Build SQL query for updating record
-        $update_query = "UPDATE $table_name SET ";
-        foreach ($_POST as $key => $value) {
-            if ($key !== 'table' && $key !== 'id') {
-                $update_query .= "$key = '$value', ";
+    // If 'id' is not provided, perform an insert operation
+    if (!isset($_POST['id'])) {
+        // Check if all required fields are present in the POST data
+        $requiredFields = ['table']; // Add more fields as needed
+        foreach ($requiredFields as $fieldName) {
+            if (!isset($_POST[$fieldName])) {
+                // If any required field is missing, return an error response
+                http_response_code(400);
+                echo json_encode(['error' => 'Missing required fields']);
+                exit;
             }
         }
-        // Remove trailing comma and space
-        $update_query = rtrim($update_query, ", ");
-        $update_query .= " WHERE id = $record_id";
 
-        // Execute the update query
-        if ($conn->query($update_query) === TRUE) {
-            // Redirect to index page with success message
-            header("Location: index.php?success=Record updated successfully.");
-            exit();
-        } else {
-            // Redirect to index page with error message
-            header("Location: index.php?error=Error updating record: " . $conn->error);
-            exit();
+        // Sanitize and validate input data (you can add more validation as needed)
+
+        // Connect to your database (include db_config.php)
+
+        // Prepare and execute the SQL insert query
+        $table_name = mysqli_real_escape_string($conn, $_POST['table']);
+        $insertQuery = "INSERT INTO $table_name (";
+        $values = "";
+        foreach ($_POST as $fieldName => $fieldValue) {
+            if ($fieldName !== 'table') {
+                $insertQuery .= "$fieldName, ";
+                $values .= "'" . mysqli_real_escape_string($conn, $fieldValue) . "', ";
+            }
         }
+        $insertQuery = rtrim($insertQuery, ', ') . ") VALUES (" . rtrim($values, ', ') . ")";
+
+        if (mysqli_query($conn, $insertQuery)) {
+            // If insert successful, return success response
+            echo json_encode(['success' => 'Record inserted successfully']);
+        } else {
+            // If insert fails, return error response
+            http_response_code(500);
+            echo json_encode(['error' => 'Error inserting record: ' . mysqli_error($conn)]);
+        }
+
+        // Close database connection
+        mysqli_close($conn);
+
     } else {
-        // Redirect to index page with error message
-        header("Location: index.php?error=Record ID not provided for update operation.");
-        exit();
+        // Prepare and execute the SQL update query
+        $table_name = mysqli_real_escape_string($conn, $_POST['table']);
+        $record_id = $_POST['id'];
+        $updateQuery = "UPDATE $table_name SET ";
+        foreach ($_POST as $fieldName => $fieldValue) {
+            if ($fieldName !== 'table' && $fieldName !== 'id') {
+                $updateQuery .= "$fieldName = '" . mysqli_real_escape_string($conn, $fieldValue) . "', ";
+            }
+        }
+        $updateQuery = rtrim($updateQuery, ', ') . " WHERE id = $record_id";
+
+        if (mysqli_query($conn, $updateQuery)) {
+            // If update successful, return success response
+            echo json_encode(['success' => 'Record updated successfully']);
+        } else {
+            // If update fails, return error response
+            http_response_code(500);
+            echo json_encode(['error' => 'Error updating record: ' . mysqli_error($conn)]);
+        }
+        // Close database connection
+        mysqli_close($conn);
     }
 } else {
-    // Redirect to index page with error message
-    header("Location: index.php?error=Form data or table name not provided.");
-    exit();
+    // If request method is not POST, return error response
+    http_response_code(405);
+    echo json_encode(['error' => 'Method Not Allowed']);
 }
 ?>

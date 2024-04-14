@@ -1,6 +1,6 @@
 <?php
-$selected_database = getenv('DATABASE_NAME');
-include 'db_config.php';
+$config_database = getenv('DATABASE_NAME');
+include '../db_config.php';
 
 // Check if table name is provided in the GET request
 if (isset($_GET['table'])) {
@@ -58,7 +58,7 @@ if (isset($_GET['table'])) {
                                 echo "<td>" . $value . "</td>";
                             }
                             // Add action buttons
-                            echo "<td><a href='edit.php?table=$table_name&id={$row['id']}' class='btn btn-primary btn-sm me-2'>Edit</a>
+                            echo "<td><a href='insert-edit.php?table=$table_name&id={$row['id']}' class='btn btn-primary btn-sm me-2'>Edit</a>
                 <a href='delete.php?table=$table_name&id={$row['id']}' class='btn btn-danger btn-sm'>Delete</a></td>";
                             echo "</tr>";
                         }
